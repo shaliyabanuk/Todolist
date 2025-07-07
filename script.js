@@ -4,58 +4,92 @@ const list = document.getElementById('todo-list');
 
 let todos = JSON.parse(localStorage.getItem('todos')) || [];
 
-function saveToLocalStorage() {
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (text) {
+    const newTodo = {
+      id: Date.now(),
+      text,
+      completed: false
+    };
+    todos.push(newTodo);
+    input.value = '';
+    saveAndRender();
+  }
+});
+
+function saveAndRender() {
   localStorage.setItem('todos', JSON.stringify(todos));
+  renderList();
 }
 
-function renderTodos() {
+function renderList() {
   list.innerHTML = '';
-  todos.forEach((todo, index) => {
+  todos.forEach(todo => {
     const li = document.createElement('li');
-    li.className = todo.completed ? 'completed' : '';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'todo-checkbox';
+    checkbox.checked = todo.completed;
+    checkbox.addEventListener('change', () => {
+      todo.completed = checkbox.checked;
+      saveAndRender();
+    });
 
     const span = document.createElement('span');
     span.textContent = todo.text;
-    span.style.cursor = 'pointer';
-    span.addEventListener('click', () => toggleComplete(index));
+    if (todo.completed) {
+      span.classList.add('completed');
+    }
 
-    const deleteBtn = document.createElement('span');
-    deleteBtn.textContent = '🗑️';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-btn';
+    editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', () => {
+      const editInput = document.createElement('input');
+      editInput.type = 'text';
+      editInput.className = 'edit-input';
+      editInput.value = todo.text;
+
+
+      li.replaceChild(editInput, span);
+      li.replaceChild(saveBtn, editBtn);
+
+      editInput.focus();
+
+      editInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveBtn.click();
+      });
+
+      const newSpan = span; 
+    });
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'edit-btn';
+    saveBtn.textContent = '💾';
+    saveBtn.addEventListener('click', () => {
+      const editInput = li.querySelector('.edit-input');
+      todo.text = editInput.value.trim() || 'Untitled Task';
+      saveAndRender();
+    });
+
+
+    const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
-    deleteBtn.addEventListener('click', () => deleteTodo(index));
+    deleteBtn.textContent = '🗑️';
+    deleteBtn.addEventListener('click', () => {
+      todos = todos.filter(t => t.id !== todo.id);
+      saveAndRender();
+    });
 
+    li.appendChild(checkbox);
     li.appendChild(span);
+    li.appendChild(editBtn);
     li.appendChild(deleteBtn);
     list.appendChild(li);
   });
 }
 
-function addTodo(text) {
-  todos.push({ text, completed: false });
-  saveToLocalStorage();
-  renderTodos();
-}
-
-function deleteTodo(index) {
-  todos.splice(index, 1);
-  saveToLocalStorage();
-  renderTodos();
-}
-
-function toggleComplete(index) {
-  todos[index].completed = !todos[index].completed;
-  saveToLocalStorage();
-  renderTodos();
-}
-
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  const text = input.value.trim();
-  if (text !== '') {
-    addTodo(text);
-    input.value = '';
-  }
-});
-
-// Initial render
-renderTodos();
+renderList();
